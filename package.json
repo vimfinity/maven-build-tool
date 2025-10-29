@@ -1,0 +1,20 @@
+{
+  "name": "prototype-maven-cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=25.1.0"
+  },
+  "packageManager": "pnpm@10.20.0",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "start": "node dist/index.js"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "tsx": "^4.20.6",
+    "@types/node": "^24.9.2"
+  }
+}
