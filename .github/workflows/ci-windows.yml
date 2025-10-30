@@ -30,10 +30,16 @@ jobs:
           echo "PATH=$PATH"
       - name: Run SEA build script
         run: bash scripts/build-sea.sh
-      - name: Upload built executable
+      - name: Archive built executable
+        run: |
+          if [ -f build/maven-cli.exe ]; then
+            powershell -Command "Compress-Archive -Path build\maven-cli.exe -DestinationPath build\maven-cli-windows.zip -Force"
+          else
+            echo "build/maven-cli.exe not found"
+            exit 1
+          fi
+      - name: Upload built artifact (zip)
         uses: actions/upload-artifact@v4
         with:
-          name: maven-cli-windows-exe
-          path: build/maven-cli.exe
-
-  # (pkg fallback removed — SEA build is the chosen best-practice path)
+          name: maven-cli-windows-zip
+          path: build/maven-cli-windows.zip
