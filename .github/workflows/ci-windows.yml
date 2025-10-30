@@ -39,7 +39,11 @@ jobs:
           }
           $output = & 'build\maven-cli.exe' 2>&1
           Write-Host "exe output: $output"
-          if ($output -notmatch 'Maven CLI bootstrap ready') {
+          $found = $false
+          foreach ($line in ($output -split "\r?\n")) {
+            if ($line -match 'Maven CLI bootstrap ready') { $found = $true; break }
+          }
+          if (-not $found) {
             Write-Error 'Smoke test failed: expected output not found'
             exit 1
           }
