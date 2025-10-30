@@ -39,7 +39,7 @@ jobs:
           }
           Write-Host "✓ Smoke test passed"
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: maven-cli-windows
           path: build/maven-cli.exe
