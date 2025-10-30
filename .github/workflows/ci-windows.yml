@@ -32,12 +32,30 @@ jobs:
             Write-Error 'Executable not found'
             exit 1
           }
-          $output = (& 'build\maven-cli.exe' 2>&1) -join "`n"
-          if ($output -notmatch 'Maven CLI bootstrap ready') {
-            Write-Error "Expected output not found: $output"
+          # Test --version flag
+          $version = & 'build\maven-cli.exe' --version 2>&1
+          if ($version -notmatch 'Maven CLI v') {
+            Write-Error "Version check failed: $version"
             exit 1
           }
-          Write-Host "✓ Smoke test passed"
+          Write-Host "✓ Version check passed"
+          
+          # Test --headless mode (CI mode)
+          $headless = & 'build\maven-cli.exe' --headless 2>&1
+          if ($headless -notmatch 'Maven CLI ready') {
+            Write-Error "Headless check failed: $headless"
+            exit 1
+          }
+          Write-Host "✓ Headless mode check passed"
+          
+          # Test --help flag
+          $help = & 'build\maven-cli.exe' --help 2>&1
+          if ($help -notmatch 'Usage:') {
+            Write-Error "Help check failed: $help"
+            exit 1
+          }
+          Write-Host "✓ Help output check passed"
+          Write-Host "✓ All smoke tests passed"
       - name: Upload artifact
         uses: actions/upload-artifact@v5
         with:

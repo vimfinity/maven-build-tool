@@ -127,9 +127,26 @@ The `scripts/build-sea.sh` script:
 ### Adding Features
 1. Keep it minimal - does it fit the project scope?
 2. Test locally with `pnpm run dev`
-3. Build SEA with `pnpm run build:sea`
-4. Verify executable works
-5. Commit with conventional commit message
+3. Build with `pnpm run build`
+4. Build SEA with `pnpm run build:sea`
+5. Test CLI flags: `./build/maven-cli.exe --version`, `--help`, `--headless`
+6. Commit with conventional commit message
+7. Push to trigger ci-windows.yml workflow automatically
+8. CI creates Windows executable and uploads as artifact
+9. Download artifact from GitHub Actions for testing on Windows
+
+### CLI Flags (Hybrid Approach)
+- `--version` / `-v`: Show version (useful for scripts)
+- `--help` / `-h`: Show usage information
+- `--headless`: Run in CI/test mode (no interactive UI)
+- No flags: Launch interactive UI with Ink
+
+### CI/CD Workflow
+- **Trigger**: Push to `main` or PR against `main`
+- **Build**: Runs TypeScript → SEA executable
+- **Test**: Smoke tests check `--version`, `--help`, `--headless`
+- **Artifact**: Windows .exe available in Actions UI
+- **Download**: Use GitHub web UI or `gh` CLI to download
 
 ### Updating Dependencies
 1. Dependabot creates PRs automatically (monthly)
