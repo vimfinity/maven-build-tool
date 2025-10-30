@@ -36,7 +36,7 @@ fi
 
 echo "Attempting injection using sentinel: $DEFAULT_SENTINEL"
 set +e
-npx postject "$NODE_BIN" NODE_SEA_BLOB build/sea-prep.blob --sentinel-fuse "$DEFAULT_SENTINEL" $(if [[ "$OS_NAME" == *Darwin* ]]; then echo "--macho-segment-name NODE_SEA"; fi)
+pnpm exec postject "$NODE_BIN" NODE_SEA_BLOB build/sea-prep.blob --sentinel-fuse "$DEFAULT_SENTINEL" $(if [[ "$OS_NAME" == *Darwin* ]]; then echo "--macho-segment-name NODE_SEA"; fi)
 POSTJECT_EXIT=$?
 set -e
 
@@ -71,9 +71,9 @@ if [ $POSTJECT_EXIT -ne 0 ]; then
   for s in $CANDIDATES; do
     echo "Attempting injection with sentinel: $s" >&2
     if [[ "$OS_NAME" == *Darwin* ]]; then
-      npx postject "$NODE_BIN" NODE_SEA_BLOB build/sea-prep.blob --sentinel-fuse "$s" --macho-segment-name NODE_SEA && INJ_OK=0 || INJ_OK=1
+      pnpm exec postject "$NODE_BIN" NODE_SEA_BLOB build/sea-prep.blob --sentinel-fuse "$s" --macho-segment-name NODE_SEA && INJ_OK=0 || INJ_OK=1
     else
-      npx postject "$NODE_BIN" NODE_SEA_BLOB build/sea-prep.blob --sentinel-fuse "$s" && INJ_OK=0 || INJ_OK=1
+      pnpm exec postject "$NODE_BIN" NODE_SEA_BLOB build/sea-prep.blob --sentinel-fuse "$s" && INJ_OK=0 || INJ_OK=1
     fi
     if [ "$INJ_OK" -eq 0 ]; then
       echo "Injection succeeded with sentinel: $s" >&2

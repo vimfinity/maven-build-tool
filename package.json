@@ -14,8 +14,9 @@
     "build:sea": "bash scripts/build-sea.sh"
   },
   "devDependencies": {
-    "typescript": "^5.9.3",
+    "@types/node": "^24.9.2",
+    "postject": "1.0.0-alpha.6",
     "tsx": "^4.20.6",
-    "@types/node": "^24.9.2"
+    "typescript": "^5.9.3"
   }
 }

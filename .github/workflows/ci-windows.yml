@@ -1,4 +1,4 @@
-name: CI (Windows SEA)
+name: CI (Windows)
 
 on:
   push:
@@ -8,11 +8,11 @@ on:
   workflow_dispatch: {}
 
 jobs:
-  build-windows-sea:
+  build-windows:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Setup Node 25
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version-file: '.nvmrc'
@@ -20,44 +20,27 @@ jobs:
       - name: Install pnpm
         run: corepack enable && corepack prepare pnpm@10.20.0 --activate
       - name: Install deps
-        run: pnpm install
-      - name: Build project
+        run: pnpm install --frozen-lockfile
+      - name: Build TypeScript
         run: pnpm run build
-      - name: Node diagnostics
-        run: |
-          node -v
-          which node || true
-          echo "PATH=$PATH"
-      - name: Run SEA build script
+      - name: Build SEA executable
         run: bash scripts/build-sea.sh
-      - name: Smoke test produced exe
+      - name: Verify executable
         shell: pwsh
         run: |
           if (-not (Test-Path 'build\maven-cli.exe')) {
-            Write-Error 'build\\maven-cli.exe not found (smoke test)'
+            Write-Error 'Executable not found'
             exit 1
           }
           $output = & 'build\maven-cli.exe' 2>&1
-          Write-Host "exe output: $output"
-          $found = $false
-          foreach ($line in ($output -split "\r?\n")) {
-            if ($line -match 'Maven CLI bootstrap ready') { $found = $true; break }
-          }
-          if (-not $found) {
-            Write-Error 'Smoke test failed: expected output not found'
+          if ($output -notmatch 'Maven CLI bootstrap ready') {
+            Write-Error "Expected output not found: $output"
             exit 1
           }
-      - name: Archive built executable
-        shell: pwsh
-        run: |
-          if (Test-Path 'build\maven-cli.exe') {
-            Compress-Archive -Path 'build\maven-cli.exe' -DestinationPath 'build\maven-cli-windows.zip' -Force
-          } else {
-            Write-Error 'build\\maven-cli.exe not found (archive)'
-            exit 1
-          }
-      - name: Upload built artifact (zip)
+          Write-Host "✓ Smoke test passed"
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: maven-cli-windows-zip
-          path: build/maven-cli-windows.zip
+          name: maven-cli-windows
+          path: build/maven-cli.exe
+

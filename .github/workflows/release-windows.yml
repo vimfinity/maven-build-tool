@@ -1,4 +1,4 @@
-name: Release (Windows SEA)
+name: Release (Windows)
 
 on:
   push:
@@ -8,11 +8,11 @@ permissions:
   contents: write
 
 jobs:
-  release-windows:
+  release:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Setup Node 25
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version-file: '.nvmrc'
@@ -20,15 +20,15 @@ jobs:
       - name: Install pnpm
         run: corepack enable && corepack prepare pnpm@10.20.0 --activate
       - name: Install deps
-        run: pnpm install
-      - name: Build project
+        run: pnpm install --frozen-lockfile
+      - name: Build TypeScript
         run: pnpm run build
-      - name: Run SEA build script
+      - name: Build SEA executable
         run: bash scripts/build-sea.sh
-      - name: Create draft release and upload EXE using gh
+      - name: Create release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG_NAME: ${{ github.ref_name }}
         run: |
-          echo "Creating draft release $env:TAG_NAME and uploading build/maven-cli.exe"
-          gh release create "$env:TAG_NAME" build/maven-cli.exe --title "$env:TAG_NAME" --notes "Automated draft release from CI" --draft --repo "${{ github.repository }}"
+          gh release create "$env:TAG_NAME" build/maven-cli.exe --title "$env:TAG_NAME" --notes "Windows CLI executable" --draft
+
