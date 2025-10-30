@@ -12,13 +12,13 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Setup pnpm
+        run: corepack enable && corepack prepare pnpm@10.20.0 --activate
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version-file: '.nvmrc'
           cache: 'pnpm'
-      - name: Install pnpm
-        run: corepack enable && corepack prepare pnpm@10.20.0 --activate
       - name: Install deps
         run: pnpm install --frozen-lockfile
       - name: Build TypeScript
