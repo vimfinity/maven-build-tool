@@ -1,0 +1,31 @@
+name: Release (Windows SEA)
+
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  release-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node 25
+        uses: actions/setup-node@v4
+        with:
+          node-version: '25.x'
+          check-latest: true
+      - name: Install pnpm
+        run: corepack enable && corepack prepare pnpm@latest --activate
+      - name: Install deps
+        run: pnpm install
+      - name: Build project
+        run: pnpm run build
+      - name: Run SEA build script
+        run: bash scripts/build-sea.sh
+      - name: Create GitHub Release and upload EXE
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ github.ref_name }}
+          files: build/maven-cli.exe
+          draft: false
+          prerelease: false
