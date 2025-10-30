@@ -30,26 +30,28 @@ jobs:
           echo "PATH=$PATH"
       - name: Run SEA build script
         run: bash scripts/build-sea.sh
-      - name: Validate built executable (smoke test)
+      - name: Smoke test produced exe
         shell: pwsh
         run: |
           if (-not (Test-Path 'build\maven-cli.exe')) {
-            Write-Error 'build\maven-cli.exe not found'
+            Write-Error 'build\\maven-cli.exe not found (smoke test)'
             exit 1
           }
-          # Run the EXE and capture output (stderr+stdout)
-          $out = & 'build\maven-cli.exe' 2>&1
-          Write-Host '--- exe output start ---'
-          Write-Host $out
-          Write-Host '--- exe output end ---'
-          if ($out -notmatch 'Maven CLI bootstrap ready') {
-            Write-Error 'Validation failed: expected output not found'
+          $output = & 'build\maven-cli.exe' 2>&1
+          Write-Host "exe output: $output"
+          if ($output -notmatch 'Maven CLI bootstrap ready') {
+            Write-Error 'Smoke test failed: expected output not found'
             exit 1
           }
       - name: Archive built executable
         shell: pwsh
         run: |
-          Compress-Archive -Path 'build\maven-cli.exe' -DestinationPath 'build\maven-cli-windows.zip' -Force
+          if (Test-Path 'build\maven-cli.exe') {
+            Compress-Archive -Path 'build\maven-cli.exe' -DestinationPath 'build\maven-cli-windows.zip' -Force
+          } else {
+            Write-Error 'build\\maven-cli.exe not found (archive)'
+            exit 1
+          }
       - name: Upload built artifact (zip)
         uses: actions/upload-artifact@v4
         with:
