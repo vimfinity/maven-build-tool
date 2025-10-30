@@ -36,26 +36,4 @@ jobs:
           name: maven-cli-windows-exe
           path: build/maven-cli.exe
 
-  # Fallback build using pkg to create a Windows executable (more pragmatic)
-  build-windows-pkg:
-    runs-on: windows-latest
-    needs: build-windows-sea
-    steps:
-      - uses: actions/checkout@v4
-      - name: Setup Node 18 (for pkg compatibility)
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-      - name: Install pnpm
-        run: corepack enable && corepack prepare pnpm@latest --activate
-      - name: Install deps
-        run: pnpm install
-      - name: Build project
-        run: pnpm run build
-      - name: Build Windows EXE with pkg (fallback)
-        run: npx --yes pkg . --targets node18-win-x64 --output build/maven-cli-pkg.exe
-      - name: Upload pkg-built executable
-        uses: actions/upload-artifact@v4
-        with:
-          name: maven-cli-windows-pkg-exe
-          path: build/maven-cli-pkg.exe
+  # (pkg fallback removed — SEA build is the chosen best-practice path)
