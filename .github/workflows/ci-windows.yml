@@ -15,13 +15,19 @@ jobs:
       - name: Setup Node 25
         uses: actions/setup-node@v4
         with:
-          node-version: '25'
+          node-version: '25.x'
+          check-latest: true
       - name: Install pnpm
         run: corepack enable && corepack prepare pnpm@latest --activate
       - name: Install deps
         run: pnpm install
       - name: Build project
         run: pnpm run build
+      - name: Node diagnostics
+        run: |
+          node -v
+          which node || true
+          echo "PATH=$PATH"
       - name: Run SEA build script
         run: bash scripts/build-sea.sh
       - name: Upload built executable
