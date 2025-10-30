@@ -1,0 +1,79 @@
+name: CI (Linux & macOS SEA)
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch: {}
+
+jobs:
+  build-linux-sea:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+      - name: Install pnpm
+        run: corepack enable && corepack prepare pnpm@10.20.0 --activate
+      - name: Install deps
+        run: pnpm install
+      - name: Build project
+        run: pnpm run build
+      - name: Run SEA build script
+        run: bash scripts/build-sea.sh
+      - name: Smoke test produced binary
+        run: |
+          if [ ! -x build/maven-cli ]; then
+            echo "build/maven-cli not found or not executable" >&2
+            exit 1
+          fi
+          output=$(./build/maven-cli 2>&1 || true)
+          echo "Binary output: $output"
+          if ! echo "$output" | grep -q "Maven CLI bootstrap ready"; then
+            echo "Smoke test failed: expected output not found" >&2
+            exit 1
+          fi
+      - name: Upload built artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: maven-cli-linux
+          path: build/maven-cli
+
+  build-macos-sea:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+      - name: Install pnpm
+        run: corepack enable && corepack prepare pnpm@10.20.0 --activate
+      - name: Install deps
+        run: pnpm install
+      - name: Build project
+        run: pnpm run build
+      - name: Run SEA build script
+        run: bash scripts/build-sea.sh
+      - name: Smoke test produced binary
+        run: |
+          if [ ! -x build/maven-cli ]; then
+            echo "build/maven-cli not found or not executable" >&2
+            exit 1
+          fi
+          output=$(./build/maven-cli 2>&1 || true)
+          echo "Binary output: $output"
+          if ! echo "$output" | grep -q "Maven CLI bootstrap ready"; then
+            echo "Smoke test failed: expected output not found" >&2
+            exit 1
+          fi
+      - name: Upload built artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: maven-cli-macos
+          path: build/maven-cli

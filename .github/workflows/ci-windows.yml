@@ -15,10 +15,10 @@ jobs:
       - name: Setup Node 25
         uses: actions/setup-node@v4
         with:
-          node-version: '25.x'
-          check-latest: true
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
       - name: Install pnpm
-        run: corepack enable && corepack prepare pnpm@latest --activate
+        run: corepack enable && corepack prepare pnpm@10.20.0 --activate
       - name: Install deps
         run: pnpm install
       - name: Build project
