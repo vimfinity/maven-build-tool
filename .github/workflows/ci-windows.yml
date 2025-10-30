@@ -32,7 +32,7 @@ jobs:
             Write-Error 'Executable not found'
             exit 1
           }
-          $output = & 'build\maven-cli.exe' 2>&1
+          $output = (& 'build\maven-cli.exe' 2>&1) -join "`n"
           if ($output -notmatch 'Maven CLI bootstrap ready') {
             Write-Error "Expected output not found: $output"
             exit 1
