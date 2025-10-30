@@ -32,11 +32,18 @@ Options:
   process.exit(0);
 }
 
-// --headless flag (for CI)
+// --headless flag (for CI) - headless mode ONLY shows text, no interactive UI
 if (values.headless) {
-  console.log("Maven CLI ready");
+  console.log("Maven CLI ready (headless mode - no UI available in SEA)");
   process.exit(0);
 }
 
-// Normal: Interaktive UI
-render(<StartView />);
+// Interactive UI (only in development with pnpm run dev, not in SEA)
+if (process.env.NODE_ENV === "development" || process.argv[1]?.includes("tsx")) {
+  render(<StartView />);
+} else {
+  // In SEA, show help instead of trying to render UI
+  console.log(`Maven CLI v0.1.0
+Use --help for usage information`);
+  process.exit(0);
+}

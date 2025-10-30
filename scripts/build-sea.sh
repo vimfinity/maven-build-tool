@@ -10,8 +10,7 @@ mkdir -p build
 echo "Building TypeScript..."
 pnpm build
 
-echo "Preparing SEA artifacts..."
-# Copy package.json to dist so SEA can find "type": "module"
+echo "Preparing SEA..."
 cp package.json dist/package.json
 
 echo "Running Node experimental SEA config to create blob..."
