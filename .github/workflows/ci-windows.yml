@@ -1,0 +1,30 @@
+name: CI (Windows SEA)
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-windows-sea:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node 25
+        uses: actions/setup-node@v4
+        with:
+          node-version: '25'
+      - name: Install pnpm
+        run: corepack enable && corepack prepare pnpm@latest --activate
+      - name: Install deps
+        run: pnpm install
+      - name: Build project
+        run: pnpm run build
+      - name: Run SEA build script
+        run: bash scripts/build-sea.sh
+      - name: Upload built executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: maven-cli-windows-exe
+          path: build/maven-cli.exe
