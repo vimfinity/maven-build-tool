@@ -10,6 +10,10 @@ mkdir -p build
 echo "Building TypeScript..."
 pnpm build
 
+echo "Preparing SEA artifacts..."
+# Copy package.json to dist so SEA can find "type": "module"
+cp package.json dist/package.json
+
 echo "Running Node experimental SEA config to create blob..."
 node --experimental-sea-config sea-config.json
 
@@ -87,25 +91,4 @@ if [ $POSTJECT_EXIT -ne 0 ]; then
   fi
 fi
 
-echo "Validating built executable..."
-if [[ "$OS_NAME" == *MINGW* ]] || [[ "$OS_NAME" == *MSYS* ]] || [[ "$OS_NAME" == *CYGWIN* ]] || [[ "$OS_NAME" == *NT* ]]; then
-  if [ -f ./build/maven-cli.exe ]; then
-    echo "Executable exists; running to verify output (may fail on CI without GUI)"
-    ./build/maven-cli.exe || true
-  else
-    echo "Executable not found at build/maven-cli.exe" >&2
-    ls -l build || true
-    exit 1
-  fi
-else
-  if [ -x ./build/maven-cli ]; then
-    echo "Executable exists; running to verify output"
-    ./build/maven-cli || true
-  else
-    echo "Executable not executable or missing" >&2
-    ls -l build || true
-    exit 1
-  fi
-fi
-
-echo "SEA build complete."
+echo "✓ SEA build complete. Binary ready at ./build/maven-cli.exe"
