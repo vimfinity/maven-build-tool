@@ -22,10 +22,10 @@ jobs:
         run: pnpm run build
       - name: Run SEA build script
         run: bash scripts/build-sea.sh
-      - name: Create GitHub Release and upload EXE
+      - name: Create GitHub Release (draft) and upload EXE
         uses: ncipollo/release-action@v1
         with:
           tag: ${{ github.ref_name }}
           files: build/maven-cli.exe
-          draft: false
+          draft: true
           prerelease: false
