@@ -130,10 +130,24 @@ The `scripts/build-sea.sh` script:
 3. Build with `pnpm run build`
 4. Build SEA with `pnpm run build:sea`
 5. Test CLI flags: `./build/maven-cli.exe --version`, `--help`, `--headless`
-6. Commit with conventional commit message
-7. Push to trigger ci-windows.yml workflow automatically
-8. CI creates Windows executable and uploads as artifact
-9. Download artifact from GitHub Actions for testing on Windows
+6. **Copilot commits** with conventional commit message format:
+   ```bash
+   git add .
+   git commit -m "feat: description" OR "fix: description"
+   git push origin main
+   ```
+7. **Copilot monitors CI** from terminal:
+   ```bash
+   gh run list --workflow ci-windows.yml --limit 1
+   gh run view <run-id> --log  # View logs in real-time
+   ```
+8. **Error handling**: If CI fails, Copilot:
+   - Reads error logs from terminal
+   - Identifies root cause
+   - Fixes code issues locally
+   - Re-commits and pushes
+   - Monitors CI again
+9. When CI passes: artifact ready for download on Windows
 
 ### CLI Flags (Hybrid Approach)
 - `--version` / `-v`: Show version (useful for scripts)
@@ -188,11 +202,42 @@ pnpm add -D <package>     # development
 
 **Important**: Keep dependencies minimal! Question every new dependency.
 
+## CI/CD Monitoring (Copilot Workflow)
+
+### Monitor Build Status
+```bash
+# List latest workflow runs
+gh run list --workflow ci-windows.yml --limit 5
+
+# View specific run details
+gh run view <run-id> --log
+
+# Watch real-time logs
+gh run view <run-id> --log --tail  # or use browser
+```
+
+### Handling CI Failures
+1. **Read logs immediately**: `gh run view <run-id> --log`
+2. **Identify issue**: Look for error messages
+3. **Fix locally**: Make code changes and re-test with `pnpm run build`
+4. **Commit and push**: `git add . && git commit -m "fix: description" && git push origin main`
+5. **Monitor again**: `gh run list --workflow ci-windows.yml --limit 1`
+6. **Success**: Artifact available for download
+
+### Expected CI Flow
+1. Push triggers `ci-windows.yml`
+2. ~90-120 seconds: TypeScript compiles
+3. ~30-60 seconds: SEA executable builds
+4. ~30 seconds: Smoke tests verify flags
+5. ~10 seconds: Artifact uploads
+6. **Total**: ~2-3 minutes
+7. **Result**: `maven-cli-windows` artifact ready in Actions UI
+
 ## Troubleshooting
 
 ### CI Fails on "Verify executable"
 - Check that `build/maven-cli.exe` exists
-- Ensure output contains "Maven CLI bootstrap ready"
+- Ensure all smoke tests pass: `--version`, `--help`, `--headless`
 - PowerShell arrays: use `-join "\n"` before regex match
 
 ### SEA Build Fails
