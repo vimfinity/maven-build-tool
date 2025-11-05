@@ -105,6 +105,15 @@ export async function interactiveSelect(options: string[], opts: SelectOptions =
         // ignore
       }
       stdin.pause();
+      // remove resize listener and any pending timer
+      try {
+        if (process.stdout && typeof process.stdout.removeListener === 'function') {
+          process.stdout.removeListener('resize', onResize as any);
+        }
+      } catch {}
+      try {
+        if (resizeTimer) clearTimeout(resizeTimer as any);
+      } catch {}
       showCursor();
     }
 
@@ -182,13 +191,5 @@ export async function interactiveSelect(options: string[], opts: SelectOptions =
     }
 
     stdin.on('data', onData);
-    // cleanup resize listener on exit
-    const cleanupResize = () => {
-      try {
-        if (process.stdout && typeof process.stdout.removeListener === 'function') {
-          process.stdout.removeListener('resize', onResize as any);
-        }
-      } catch {}
-    };
   });
 }
