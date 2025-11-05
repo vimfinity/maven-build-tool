@@ -10,6 +10,8 @@ export { renderHeader } from './views/header';
 export { renderFooter } from './views/footer';
 export { renderMainMenu } from './views/mainMenu';
 export { renderStatus } from './views/status';
+export { renderSelect, interactiveSelect } from './widgets/select';
+export type { SelectOptions } from './widgets/select';
 
 // Small helpers
 export function joinLines(parts: Array<string | undefined | null>): string {

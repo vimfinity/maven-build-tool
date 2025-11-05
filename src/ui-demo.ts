@@ -1,4 +1,4 @@
-import { renderHeader, renderFooter, renderMainMenu, renderStatus, joinLines } from '../ui';
+import { renderHeader, renderFooter, renderMainMenu, renderStatus, joinLines } from './ui';
 
 async function runDemo() {
   const header = renderHeader();
