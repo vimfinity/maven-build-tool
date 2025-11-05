@@ -75,9 +75,26 @@ export async function interactiveSelect(options: string[], opts: SelectOptions =
   if (stdin.isTTY) stdin.setRawMode(true);
   stdin.resume();
 
+  // viewport handling
+  const reservedLines = 3; // prompt + empty line + help
+  function pageSize() {
+    const rows = (process.stdout && typeof process.stdout.rows === 'number') ? process.stdout.rows : 24;
+    return Math.max(3, rows - reservedLines);
+  }
+  let visibleStart = 0;
+
+  function ensureVisible() {
+    const ps = pageSize();
+    const maxStart = Math.max(0, options.length - ps);
+    if (current < visibleStart) visibleStart = current;
+    if (current > visibleStart + ps - 1) visibleStart = current - (ps - 1);
+    visibleStart = Math.max(0, Math.min(visibleStart, maxStart));
+  }
+
   hideCursor();
   clearScreen();
-  process.stdout.write(renderSelect(options, current, selected, multi, opts.prompt));
+  ensureVisible();
+  process.stdout.write(renderSelect(options.slice(visibleStart, visibleStart + pageSize()), current - visibleStart, selected, multi, opts.prompt));
 
   return await new Promise((resolve) => {
     function cleanup() {
@@ -89,6 +106,21 @@ export async function interactiveSelect(options: string[], opts: SelectOptions =
       }
       stdin.pause();
       showCursor();
+    }
+
+    let resizeTimer: NodeJS.Timeout | null = null;
+
+    function onResize() {
+      if (resizeTimer) clearTimeout(resizeTimer as any);
+      resizeTimer = setTimeout(() => {
+        ensureVisible();
+        clearScreen();
+        process.stdout.write(renderSelect(options.slice(visibleStart, visibleStart + pageSize()), current - visibleStart, selected, multi, opts.prompt));
+      }, 80);
+    }
+
+    if (process.stdout && typeof process.stdout.on === 'function') {
+      process.stdout.on('resize', onResize as any);
     }
 
     function onData(chunk: string) {
@@ -103,9 +135,29 @@ export async function interactiveSelect(options: string[], opts: SelectOptions =
 
       // arrows come as escape sequences
       if (key === '\u001b[A' || key === '\x1b[A') {
-        current = (current - 1 + options.length) % options.length;
+        current = Math.max(0, current - 1);
+        ensureVisible();
       } else if (key === '\u001b[B' || key === '\x1b[B') {
-        current = (current + 1) % options.length;
+        current = Math.min(options.length - 1, current + 1);
+        ensureVisible();
+      } else if (key === '\x1b[5~') { // PageUp
+        const ps = pageSize();
+        current = Math.max(0, current - ps);
+        visibleStart = Math.max(0, visibleStart - ps);
+        ensureVisible();
+      } else if (key === '\x1b[6~') { // PageDown
+        const ps = pageSize();
+        current = Math.min(options.length - 1, current + ps);
+        visibleStart = Math.min(Math.max(0, options.length - ps), visibleStart + ps);
+        ensureVisible();
+      } else if (key === '\x1b[H' || key === '\x1b[1~' || key === '\x1b[7~') { // Home
+        current = 0;
+        visibleStart = 0;
+        ensureVisible();
+      } else if (key === '\x1b[F' || key === '\x1b[4~' || key === '\x1b[8~') { // End
+        current = options.length - 1;
+        visibleStart = Math.max(0, options.length - pageSize());
+        ensureVisible();
       } else if (key === ' ' && multi) {
         // toggle
         if (selected.has(current)) selected.delete(current); else selected.add(current);
@@ -124,11 +176,19 @@ export async function interactiveSelect(options: string[], opts: SelectOptions =
         // ignore other keys
       }
 
-      // re-render
+      // re-render visible window
       clearScreen();
-      process.stdout.write(renderSelect(options, current, selected, multi, opts.prompt));
+      process.stdout.write(renderSelect(options.slice(visibleStart, visibleStart + pageSize()), current - visibleStart, selected, multi, opts.prompt));
     }
 
     stdin.on('data', onData);
+    // cleanup resize listener on exit
+    const cleanupResize = () => {
+      try {
+        if (process.stdout && typeof process.stdout.removeListener === 'function') {
+          process.stdout.removeListener('resize', onResize as any);
+        }
+      } catch {}
+    };
   });
 }
