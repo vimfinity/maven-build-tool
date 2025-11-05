@@ -4,6 +4,16 @@ export interface SelectOptions {
   prompt?: string;
 }
 
+// Simple ANSI styling helpers (kept local to avoid new deps)
+const ANSI = {
+  reset: '\x1b[0m',
+  bold: '\x1b[1m',
+  dim: '\x1b[2m',
+  cyan: '\x1b[36m',
+  green: '\x1b[32m',
+  gray: '\x1b[90m',
+};
+
 function clearScreen() {
   // clear screen and move cursor to top-left
   process.stdout.write('\x1b[2J\x1b[0f');
@@ -17,16 +27,39 @@ function showCursor() {
   process.stdout.write('\x1b[?25h');
 }
 
+/**
+ * Render the select list with nicer glyphs and colors.
+ * - multi: uses checkbox glyphs ◻ / ◼
+ * - single: uses radio glyphs ○ / ●
+ * - current line is prefixed with a colored arrow ›
+ */
 export function renderSelect(options: string[], current: number, selected: Set<number>, multi: boolean, prompt?: string): string {
   const lines: string[] = [];
-  if (prompt) lines.push(prompt);
+  const reset = ANSI.reset;
+  const cyan = ANSI.cyan;
+  const green = ANSI.green;
+  const dim = ANSI.dim;
+
+  if (prompt) lines.push(`${ANSI.bold}${prompt}${reset}`);
   for (let i = 0; i < options.length; i++) {
-    const prefix = i === current ? '>' : ' ';
-    const mark = multi ? (selected.has(i) ? '[x]' : '[ ]') : '   ';
-    lines.push(`${prefix} ${mark} ${options[i]}`);
+    const isCurrent = i === current;
+    const pointer = isCurrent ? `${cyan}›${reset}` : ' ';
+
+    let mark: string;
+    if (multi) {
+      // checkbox
+      mark = selected.has(i) ? `${green}◼${reset}` : `${dim}◻${reset}`;
+    } else {
+      // radio
+      mark = isCurrent ? `${cyan}●${reset}` : `${dim}○${reset}`;
+    }
+
+    const label = isCurrent ? `${ANSI.bold}${options[i]}${reset}` : `${options[i]}`;
+    lines.push(`${pointer} ${mark} ${label}`);
   }
+
   lines.push('');
-  lines.push("Use ↑/↓ to move, <space> to toggle (multi), Enter to confirm, Esc/q to cancel");
+  lines.push(`${ANSI.gray}Use ↑/↓ to move, <space> to toggle (multi), Enter to confirm, Esc/q to cancel${reset}`);
   return lines.join('\n');
 }
 

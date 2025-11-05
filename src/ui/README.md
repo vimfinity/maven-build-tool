@@ -15,15 +15,16 @@ APIs (short)
 - `interactiveSelect(options, opts?): Promise<number|number[]|null>` - interactive single/multi select.
 
 Usage
-Run the non-interactive demo:
-```
-pnpm run dev -- --ui-demo
-```
-
 Run interactive demos (TTY required):
 ```
 pnpm exec tsx src/ui/demos/ui-interactive-demo.ts
 pnpm exec tsx src/ui/demos/ui-multiselect-demo.ts
+```
+
+You can also use the CLI flag (in a TTY):
+```
+pnpm run dev -- --ui-demo
+pnpm run dev -- --ui-multiselect-demo
 ```
 
 Notes
