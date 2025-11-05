@@ -2,6 +2,7 @@ export interface SelectOptions {
   multi?: boolean;
   initial?: number | number[];
   prompt?: string;
+  header?: string; // optional header text to show above the prompt
 }
 
 // Simple ANSI styling helpers (kept local to avoid new deps)
@@ -9,8 +10,9 @@ const ANSI = {
   reset: '\x1b[0m',
   bold: '\x1b[1m',
   dim: '\x1b[2m',
-  cyan: '\x1b[36m',
-  green: '\x1b[32m',
+  // Accent color: slightly paler periwinkle (mildly mixed with white) #7477D8
+  pastel: '\x1b[38;2;116;119;216m',
+  white: '\x1b[97m',
   gray: '\x1b[90m',
 };
 
@@ -35,26 +37,26 @@ function showCursor() {
  */
 export function renderSelect(options: string[], current: number, selected: Set<number>, multi: boolean, prompt?: string): string {
   const lines: string[] = [];
-  const reset = ANSI.reset;
-  const cyan = ANSI.cyan;
-  const green = ANSI.green;
+    const reset = ANSI.reset;
+  const cyan = ANSI.pastel;
   const dim = ANSI.dim;
+  const bold = ANSI.bold;
 
-  if (prompt) lines.push(`${ANSI.bold}${prompt}${reset}`);
+  if (prompt) lines.push(`${bold}${prompt}${reset}`);
   for (let i = 0; i < options.length; i++) {
     const isCurrent = i === current;
     const pointer = isCurrent ? `${cyan}›${reset}` : ' ';
 
     let mark: string;
     if (multi) {
-      // checkbox
-      mark = selected.has(i) ? `${green}◼${reset}` : `${dim}◻${reset}`;
+      // checkbox (muted cyan for selected)
+      mark = selected.has(i) ? `${cyan}◼${reset}` : `${dim}◻${reset}`;
     } else {
       // radio
       mark = isCurrent ? `${cyan}●${reset}` : `${dim}○${reset}`;
     }
 
-    const label = isCurrent ? `${ANSI.bold}${options[i]}${reset}` : `${options[i]}`;
+  const label = isCurrent ? `${bold}${ANSI.white}${options[i]}${reset}` : `${ANSI.gray}${options[i]}${reset}`;
     lines.push(`${pointer} ${mark} ${label}`);
   }
 
@@ -94,7 +96,8 @@ export async function interactiveSelect(options: string[], opts: SelectOptions =
   hideCursor();
   clearScreen();
   ensureVisible();
-  process.stdout.write(renderSelect(options.slice(visibleStart, visibleStart + pageSize()), current - visibleStart, selected, multi, opts.prompt));
+  const headerStr = opts.header ? (opts.header + '\n') : '';
+  process.stdout.write(headerStr + renderSelect(options.slice(visibleStart, visibleStart + pageSize()), current - visibleStart, selected, multi, opts.prompt));
 
   return await new Promise((resolve) => {
     function cleanup() {
@@ -124,7 +127,8 @@ export async function interactiveSelect(options: string[], opts: SelectOptions =
       resizeTimer = setTimeout(() => {
         ensureVisible();
         clearScreen();
-        process.stdout.write(renderSelect(options.slice(visibleStart, visibleStart + pageSize()), current - visibleStart, selected, multi, opts.prompt));
+        const headerStr = opts.header ? (opts.header + '\n') : '';
+        process.stdout.write(headerStr + renderSelect(options.slice(visibleStart, visibleStart + pageSize()), current - visibleStart, selected, multi, opts.prompt));
       }, 80);
     }
 
@@ -187,7 +191,8 @@ export async function interactiveSelect(options: string[], opts: SelectOptions =
 
       // re-render visible window
       clearScreen();
-      process.stdout.write(renderSelect(options.slice(visibleStart, visibleStart + pageSize()), current - visibleStart, selected, multi, opts.prompt));
+      const headerStr = opts.header ? (opts.header + '\n') : '';
+      process.stdout.write(headerStr + renderSelect(options.slice(visibleStart, visibleStart + pageSize()), current - visibleStart, selected, multi, opts.prompt));
     }
 
     stdin.on('data', onData);
