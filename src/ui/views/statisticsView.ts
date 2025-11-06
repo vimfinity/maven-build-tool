@@ -1,5 +1,6 @@
 import type { View } from '../view-manager';
 import { renderHeader } from './header';
+import renderWipNotice from './wip';
 
 const StatisticsView: View = {
   render() {
@@ -17,8 +18,8 @@ const StatisticsView: View = {
     lines.push('- Anzahl analysierter Projekte');
     lines.push('- Test- und Build-Statistiken');
     lines.push('');
-    while (lines.length < rows - 2) lines.push('');
-    return header + '\n' + lines.join('\n') + '\n';
+    while (lines.length < rows - 4) lines.push('');
+    return header + '\n' + lines.join('\n') + renderWipNotice();
   },
   onInput(chunk: string, vm) {
     if (!chunk) return;

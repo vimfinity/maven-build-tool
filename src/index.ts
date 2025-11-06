@@ -16,39 +16,10 @@ async function tryImport<T = any>(basePath: string): Promise<T> {
 async function main() {
 	const args = process.argv.slice(2);
 
-	if (args.includes('--ui-demo')) {
-		if (!process.stdin.isTTY) {
-			console.log('UI demo requires an interactive TTY. Run in a terminal, not piped.');
-			process.exit(1);
-		}
+	// demo flags removed: demos were deprecated and cleaned from the repository
 
-		try {
-			const mod = await tryImport<{ default: () => Promise<void> }>('./ui/demos/ui-interactive-demo');
-			await mod.default();
-			process.exit(0);
-		} catch (err) {
-			console.error('UI demo failed:', err);
-			process.exit(1);
-		}
-	}
-
-	if (args.includes('--ui-multiselect-demo')) {
-		if (!process.stdin.isTTY) {
-			console.log('Multi-select demo requires a TTY.');
-			process.exit(1);
-		}
-
-		try {
-			const mod = await tryImport<{ default: () => Promise<void> }>('./ui/demos/ui-multiselect-demo');
-			await mod.default();
-			process.exit(0);
-		} catch (err) {
-			console.error('UI multi-select demo failed:', err);
-			process.exit(1);
-		}
-	}
-
-	if (args.includes('--ui')) {
+	// default to UI when running in a TTY and no other args supplied
+	if (args.includes('--ui') || (args.length === 0 && process.stdin.isTTY)) {
 		if (!process.stdin.isTTY) {
 			console.log('UI requires a TTY.');
 			process.exit(1);

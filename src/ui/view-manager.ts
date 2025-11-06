@@ -1,6 +1,9 @@
 import { joinLines, renderFooter } from '.';
 import { PALETTE, accent } from './theme';
 
+// small helper to remove ANSI SGR sequences when measuring visible length
+const stripAnsi = (s: string) => s.replace(/\x1b\[[0-9;]*m/g, '');
+
 export type View = {
   render: () => string;
   onMount?: (vm: ViewManager) => void | Promise<void>;
@@ -9,6 +12,8 @@ export type View = {
   footerHints?: () => string[];
   // optional human readable title
   title?: string;
+  // optional per-view state bag; recommended place to keep current/selected indices, etc.
+  state?: Record<string, unknown>;
   // components used by this view; used to auto-provide footer hints (e.g. 'select', 'multiselect')
   components?: string[];
 };
@@ -19,8 +24,13 @@ export class ViewManager {
   private running = false;
   private history: string[] = [];
   private anonCounter = 0;
+  // typed fields for global handlers and shutdown finish function
+  private _sigint?: () => void;
+  private _uncaught?: (err: unknown) => void;
+  private _unhandled?: (reason: unknown) => void;
+  private _finish?: () => void;
 
-  constructor() {}
+  constructor() { }
 
   register(name: string, view: View) {
     this.views.set(name, view);
@@ -53,7 +63,7 @@ export class ViewManager {
     try {
       process.stdout.write('\x1b[2J\x1b[H');
       await new Promise((r) => setTimeout(r, 20));
-    } catch {}
+    } catch { }
 
     this.redraw(view);
     await view.onMount?.(this);
@@ -68,7 +78,7 @@ export class ViewManager {
     if (current && current.startsWith('__anon_')) {
       try {
         this.views.delete(current);
-      } catch {}
+      } catch { }
     }
   }
 
@@ -95,14 +105,12 @@ export class ViewManager {
     if (lines.length > 0 && lines[lines.length - 1] === '') lines.pop();
 
     // Pad or trim to exactly `rows` lines (leave room for clean visual)
-  // reserve final 1 row for footer
-  const bodyRows = Math.max(0, rows - 1);
-  const padded: string[] = lines.slice(0, bodyRows);
-  while (padded.length < bodyRows) padded.push('');
+    // reserve final 1 row for footer
+    const bodyRows = Math.max(0, rows - 1);
+    const padded: string[] = lines.slice(0, bodyRows);
+    while (padded.length < bodyRows) padded.push('');
 
     // Ensure each line is not longer than cols (trim), or pad to cols to avoid line-wrapping causing scroll
-    // helper: strip ANSI sequences to measure visible length
-    const stripAnsi = (s: string) => s.replace(/\x1b\[[0-9;]*m/g, '');
     const normalized = padded.map((ln) => {
       const visible = stripAnsi(ln);
       if (visible.length > cols) {
@@ -115,26 +123,25 @@ export class ViewManager {
     // render footer: determine hints (explicit or auto-derived)
     try {
       let hints: string[] = [];
-      if ((v as any).footerHints) {
-        hints = (v as any).footerHints();
+      if (v.footerHints) {
+        hints = v.footerHints();
       } else {
         // auto derive from components
         const compHints: Record<string, string[]> = {
           select: ['↑/↓: bewegen', 'Enter: auswählen'],
           multiselect: ['↑/↓: bewegen', 'Leertaste: markieren', 'Enter: ausführen'],
         };
-        const comps: string[] = (v as any).components || [];
+        const comps: string[] = v.components || [];
         for (const c of comps) {
           const mapped = compHints[c];
           if (mapped) hints.push(...mapped);
         }
-  // contextual hints
+        // contextual hints
         if (this.history.length > 0) hints.push('Esc: Zurück');
       }
       // global hint for quit (always present)
       hints.push('q: Beenden');
 
-      const title = (v as any).title || this.current || 'idle';
 
       // Format each hint into an ANSI string similar to renderFooter
       const formatHint = (h: string) => {
@@ -148,7 +155,6 @@ export class ViewManager {
       };
 
       const formattedParts = hints.map(formatHint);
-      const stripAnsi = (s: string) => s.replace(/\x1b\[[0-9;]*m/g, '');
 
       // fit as many full parts as possible into `cols`, left-to-right
       const outParts: string[] = [];
@@ -180,7 +186,7 @@ export class ViewManager {
       const row = normalized.length - 1;
       const visible = stripAnsi(ln);
       normalized[row] = ln + ' '.repeat(Math.max(0, cols - visible.length));
-    } catch {}
+    } catch { }
 
     const buffer = '\x1b[H' + normalized.join('\n');
     process.stdout.write(buffer);
@@ -228,7 +234,7 @@ export class ViewManager {
       // ensure process exits after cleanup
       try {
         process.exit(0);
-      } catch {}
+      } catch { }
     };
 
     const onUncaught = async (err: unknown) => {
@@ -243,24 +249,24 @@ export class ViewManager {
       console.error('Uncaught exception:', err);
       try {
         process.exit(1);
-      } catch {}
+      } catch { }
     };
 
     const onUnhandledRejection = async (reason: unknown) => {
       try {
         await this.shutdown();
-      } catch {}
+      } catch { }
       // eslint-disable-next-line no-console
       console.error('Unhandled rejection:', reason);
       try {
         process.exit(1);
-      } catch {}
+      } catch { }
     };
 
     // register global handlers (store them so we can remove later)
-    (this as any)._sigint = onSigInt;
-    (this as any)._uncaught = onUncaught;
-    (this as any)._unhandled = onUnhandledRejection;
+    this._sigint = onSigInt;
+    this._uncaught = onUncaught;
+    this._unhandled = onUnhandledRejection;
     process.on('SIGINT', onSigInt);
     process.on('uncaughtException', onUncaught as any);
     process.on('unhandledRejection', onUnhandledRejection as any);
@@ -274,46 +280,37 @@ export class ViewManager {
       const finish = async () => {
         try {
           process.stdin.off('data', onData as any);
-        } catch {}
+        } catch { }
         try {
           process.stdout.off('resize', onResize as any);
-        } catch {}
+        } catch { }
         try {
           process.stdin.setRawMode && process.stdin.setRawMode(false);
-        } catch {}
+        } catch { }
         try {
           process.stdin.pause();
-        } catch {}
+        } catch { }
         try {
           process.stdout.write('\x1b[?25h'); // show cursor
           process.stdout.write('\x1b[2J\x1b[H');
           process.stdout.write('\x1b[?1049l'); // exit alt buffer
-        } catch {}
+        } catch { }
 
-        // remove global handlers if they were set
-        try {
-          const sig = (this as any)._sigint;
-          if (sig) process.off('SIGINT', sig);
-        } catch {}
-        try {
-          const uc = (this as any)._uncaught;
-          if (uc) process.off('uncaughtException', uc as any);
-        } catch {}
-        try {
-          const uh = (this as any)._unhandled;
-          if (uh) process.off('unhandledRejection', uh as any);
-        } catch {}
+        // remove global handlers if they were set (best-effort)
+        try { if (this._sigint) process.off('SIGINT', this._sigint); } catch { }
+        try { if (this._uncaught) process.off('uncaughtException', this._uncaught as any); } catch { }
+        try { if (this._unhandled) process.off('unhandledRejection', this._unhandled as any); } catch { }
         this.running = false;
         resolve();
       };
 
       // expose shutdown so views can call it
-      (this as any)._finish = finish;
+      this._finish = finish;
     });
   }
 
   async shutdown() {
-    const fin = (this as any)._finish as (() => void) | undefined;
+    const fin = this._finish;
     if (fin) fin();
   }
 }

@@ -37,7 +37,7 @@ function showCursor() {
  */
 export function renderSelect(options: string[], current: number, selected: Set<number>, multi: boolean, prompt?: string, showHelp = true): string {
   const lines: string[] = [];
-    const reset = ANSI.reset;
+  const reset = ANSI.reset;
   const cyan = ANSI.pastel;
   const dim = ANSI.dim;
   const bold = ANSI.bold;
@@ -56,7 +56,7 @@ export function renderSelect(options: string[], current: number, selected: Set<n
       mark = isCurrent ? `${cyan}●${reset}` : `${dim}○${reset}`;
     }
 
-  const label = isCurrent ? `${bold}${ANSI.white}${options[i]}${reset}` : `${ANSI.gray}${options[i]}${reset}`;
+    const label = isCurrent ? `${bold}${ANSI.white}${options[i]}${reset}` : `${ANSI.gray}${options[i]}${reset}`;
     lines.push(`${pointer} ${mark} ${label}`);
   }
 
@@ -115,10 +115,10 @@ export async function interactiveSelect(options: string[], opts: SelectOptions =
         if (process.stdout && typeof process.stdout.removeListener === 'function') {
           process.stdout.removeListener('resize', onResize as any);
         }
-      } catch {}
+      } catch { }
       try {
         if (resizeTimer) clearTimeout(resizeTimer as any);
-      } catch {}
+      } catch { }
       showCursor();
     }
 
@@ -178,7 +178,7 @@ export async function interactiveSelect(options: string[], opts: SelectOptions =
         if (selected.has(current)) selected.delete(current); else selected.add(current);
       } else if (key === '\r' || key === '\n') {
         // confirm
-        const result = multi ? Array.from(selected).sort((a,b)=>a-b) : current;
+        const result = multi ? Array.from(selected).sort((a, b) => a - b) : current;
         cleanup();
         resolve(result as any);
         return;

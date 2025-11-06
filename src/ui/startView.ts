@@ -38,21 +38,21 @@ export async function runStartView(): Promise<void> {
     const cleanup = () => {
       try {
         process.stdin.off('data', onData as any);
-      } catch {}
+      } catch { }
       try {
         process.stdout.off('resize', onResize as any);
-      } catch {}
+      } catch { }
       try {
         process.stdin.setRawMode && process.stdin.setRawMode(false);
-      } catch {}
+      } catch { }
       try {
         process.stdin.pause();
-      } catch {}
+      } catch { }
       try {
         showCursor();
         clearScreen();
         exitAlternateBuffer();
-      } catch {}
+      } catch { }
       // resolve to signal that the view finished
       resolve();
     };
@@ -64,10 +64,10 @@ export async function runStartView(): Promise<void> {
     process.stdin.resume();
     process.stdin.setEncoding('utf8');
 
-  enterAlternateBuffer();
-  clearScrollback();
-  hideCursor();
-  clearScreen();
+    enterAlternateBuffer();
+    clearScrollback();
+    hideCursor();
+    clearScreen();
 
     // render a simple full-screen layout
     function render() {
@@ -77,7 +77,7 @@ export async function runStartView(): Promise<void> {
 
       // Center a welcome message
       const title = 'Welcome to Maven CLI';
-  const subtitle = 'Press Q to quit';
+      const subtitle = 'Press Q to quit';
 
       const contentLines: string[] = [];
       // Reserved lines: header + footer (2)
