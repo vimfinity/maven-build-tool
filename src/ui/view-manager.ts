@@ -48,10 +48,27 @@ export class ViewManager {
   redraw(view?: View) {
     const v = view ?? (this.current ? this.views.get(this.current) : undefined);
     if (!v) return;
-    // always clear whole screen and draw view.render()
-    process.stdout.write('\x1b[H');
-    process.stdout.write('\x1b[2J');
-    process.stdout.write(joinLines([v.render()]));
+    // Produce a full-screen buffer and write it in a single write to avoid flicker.
+    const cols = process.stdout.columns || 80;
+    const rows = process.stdout.rows || 24;
+    // Request the view's content and split into lines
+    const raw = v.render() || '';
+    const lines = raw.replace(/\r/g, '').split('\n');
+    // Remove final empty line caused by trailing newline
+    if (lines.length > 0 && lines[lines.length - 1] === '') lines.pop();
+
+    // Pad or trim to exactly `rows` lines (leave room for clean visual)
+    const padded: string[] = lines.slice(0, rows);
+    while (padded.length < rows) padded.push('');
+
+    // Ensure each line is not longer than cols (trim), or pad to cols to avoid line-wrapping causing scroll
+    const normalized = padded.map((ln) => {
+      if (ln.length > cols) return ln.slice(0, cols);
+      return ln + ' '.repeat(Math.max(0, cols - ln.length));
+    });
+
+    const buffer = '\x1b[H' + normalized.join('\n');
+    process.stdout.write(buffer);
   }
 
   start(): Promise<void> {
