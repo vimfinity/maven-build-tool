@@ -8,7 +8,7 @@ export const StartScreen = {
     const rows = process.stdout.rows || 24;
 
     const title = 'Welcome to Maven CLI';
-    const subtitle = 'Enter: Open main menu  •  Q/Ctrl+C: Quit';
+  const subtitle = 'Enter: Open main menu  •  Q: Quit';
 
     const bodyRows = Math.max(0, rows - 4);
     const contentLines: string[] = [];

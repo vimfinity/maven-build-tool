@@ -77,7 +77,7 @@ export async function runStartView(): Promise<void> {
 
       // Center a welcome message
       const title = 'Welcome to Maven CLI';
-      const subtitle = 'Press Q or Ctrl+C to quit';
+  const subtitle = 'Press Q to quit';
 
       const contentLines: string[] = [];
       // Reserved lines: header + footer (2)

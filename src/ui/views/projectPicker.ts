@@ -5,11 +5,13 @@ import { renderSelect } from '../widgets/select';
 const projects = ['project-a', 'project-b', 'project-c'];
 
 export const ProjectPicker: View = {
+  title: 'Projekte',
+  components: ['select'],
   render() {
-    const header = renderHeader();
-    const current = (this as any).__current || 0;
-    const body = renderSelect(projects, current, new Set<number>(), false, 'Projekte');
-    return header + '\n' + body;
+  const header = renderHeader();
+  const current = (this as any).__current || 0;
+  const body = renderSelect(projects, current, new Set<number>(), false, 'Projekte', false);
+  return header + '\n' + body;
   },
   onMount(vm) {
     (this as any).__current = 0;
@@ -29,28 +31,39 @@ export const ProjectPicker: View = {
       // open goals view using same select component
       const goals = ['clean', 'package', 'test'];
       const goalsView: View = {
+        title: `Goals: ${project}`,
+        components: ['multiselect'],
         render() {
           const header = renderHeader();
           const current = (this as any).__current || 0;
-          return header + '\n' + renderSelect(goals, current, new Set<number>(), false, `Goals: ${project}`);
+          const selected: Set<number> = (this as any).__selected || new Set<number>();
+          return header + '\n' + renderSelect(goals, current, selected, true, `Goals: ${project}`, false);
         },
         onMount() {
           (this as any).__current = 0;
+          (this as any).__selected = new Set<number>();
         },
         onUnmount() {
           delete (this as any).__current;
+          delete (this as any).__selected;
+        },
+        footerHints() {
+          return ['↑/↓: bewegen', 'Leertaste: markieren/unmarkieren', 'Enter: ausführen', 'Esc: Zurück'];
         },
         onInput(innerChunk: string, innerVm) {
           if (!innerChunk) return;
           let idx: number = (this as any).__current || 0;
+          const selected: Set<number> = (this as any).__selected || new Set<number>();
           if (innerChunk === '\u001b[A') idx = Math.max(0, idx - 1);
           else if (innerChunk === '\u001b[B') idx = Math.min(goals.length - 1, idx + 1);
-          else if (innerChunk === '\r' || innerChunk === '\n') {
-            // simulate opening a build/logs view
+          else if (innerChunk === ' ') {
+            if (selected.has(idx)) selected.delete(idx); else selected.add(idx);
+          } else if (innerChunk === '\r' || innerChunk === '\n') {
+            const chosen = Array.from(selected).map((i) => goals[i]);
             innerVm.open({
               render() {
                 const header = renderHeader();
-                const lines = ['Building ' + project + ' - ' + goals[idx], '', 'Logs will appear here. Press Esc to go back.'];
+                const lines = ['Wird ausgeführt: ' + chosen.join(', '), '', 'Logs will appear here. Press Esc to go back.'];
                 return header + '\n' + lines.join('\n') + '\n';
               },
               onInput(c, vm2) {
@@ -63,6 +76,7 @@ export const ProjectPicker: View = {
             return;
           }
           (this as any).__current = idx;
+          (this as any).__selected = selected;
           innerVm.redraw(this as any);
         },
       };

@@ -63,10 +63,12 @@ async function main() {
 			const mainMenuMod = await tryImport('./ui/views/mainMenuView');
 			const projectPickerMod = await tryImport('./ui/views/projectPicker');
 			const settingsMod = await tryImport('./ui/views/settingsView');
+			const statisticsMod = await tryImport('./ui/views/statisticsView');
 			vm.register('start', startMod.default || startMod.StartScreen || startMod);
 			vm.register('mainMenu', mainMenuMod.default || mainMenuMod.MainMenuView || mainMenuMod);
 			vm.register('projectPicker', projectPickerMod.default || projectPickerMod.ProjectPicker || projectPickerMod);
 			vm.register('settings', settingsMod.default || settingsMod.SettingsView || settingsMod);
+			vm.register('statistics', statisticsMod.default || statisticsMod.StatisticsView || statisticsMod);
 
 			// show main menu immediately after boot
 			// start the ViewManager (enter alternate buffer) before drawing the first view

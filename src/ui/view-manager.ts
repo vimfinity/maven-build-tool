@@ -1,10 +1,16 @@
-import { joinLines } from '.';
+import { joinLines, renderFooter } from '.';
+import { PALETTE, accent } from './theme';
 
 export type View = {
   render: () => string;
   onMount?: (vm: ViewManager) => void | Promise<void>;
   onUnmount?: (vm: ViewManager) => void | Promise<void>;
   onInput?: (chunk: string, vm: ViewManager) => void | Promise<void>;
+  footerHints?: () => string[];
+  // optional human readable title
+  title?: string;
+  // components used by this view; used to auto-provide footer hints (e.g. 'select', 'multiselect')
+  components?: string[];
 };
 
 export class ViewManager {
@@ -38,8 +44,17 @@ export class ViewManager {
     if (!replace && this.current) {
       this.history.push(this.current);
     }
+    // small transition: clear then draw new view to avoid abrupt flicker
+    const prevName = this.current;
     this.current = name;
     const view = this.views.get(name)!;
+
+    // two-frame pseudo-transition (clear then draw)
+    try {
+      process.stdout.write('\x1b[2J\x1b[H');
+      await new Promise((r) => setTimeout(r, 20));
+    } catch {}
+
     this.redraw(view);
     await view.onMount?.(this);
   }
@@ -80,14 +95,92 @@ export class ViewManager {
     if (lines.length > 0 && lines[lines.length - 1] === '') lines.pop();
 
     // Pad or trim to exactly `rows` lines (leave room for clean visual)
-    const padded: string[] = lines.slice(0, rows);
-    while (padded.length < rows) padded.push('');
+  // reserve final 1 row for footer
+  const bodyRows = Math.max(0, rows - 1);
+  const padded: string[] = lines.slice(0, bodyRows);
+  while (padded.length < bodyRows) padded.push('');
 
     // Ensure each line is not longer than cols (trim), or pad to cols to avoid line-wrapping causing scroll
+    // helper: strip ANSI sequences to measure visible length
+    const stripAnsi = (s: string) => s.replace(/\x1b\[[0-9;]*m/g, '');
     const normalized = padded.map((ln) => {
-      if (ln.length > cols) return ln.slice(0, cols);
-      return ln + ' '.repeat(Math.max(0, cols - ln.length));
+      const visible = stripAnsi(ln);
+      if (visible.length > cols) {
+        // truncate visible part; drop color escapes to keep output safe
+        return visible.slice(0, cols);
+      }
+      return ln + ' '.repeat(Math.max(0, cols - visible.length));
     });
+
+    // render footer: determine hints (explicit or auto-derived)
+    try {
+      let hints: string[] = [];
+      if ((v as any).footerHints) {
+        hints = (v as any).footerHints();
+      } else {
+        // auto derive from components
+        const compHints: Record<string, string[]> = {
+          select: ['↑/↓: bewegen', 'Enter: auswählen'],
+          multiselect: ['↑/↓: bewegen', 'Leertaste: markieren', 'Enter: ausführen'],
+        };
+        const comps: string[] = (v as any).components || [];
+        for (const c of comps) {
+          const mapped = compHints[c];
+          if (mapped) hints.push(...mapped);
+        }
+  // contextual hints
+        if (this.history.length > 0) hints.push('Esc: Zurück');
+      }
+      // global hint for quit (always present)
+      hints.push('q: Beenden');
+
+      const title = (v as any).title || this.current || 'idle';
+
+      // Format each hint into an ANSI string similar to renderFooter
+      const formatHint = (h: string) => {
+        const idx = h.indexOf(':');
+        if (idx > 0) {
+          const key = h.slice(0, idx).trim();
+          const label = h.slice(idx + 1).trim();
+          return `${accent()}${PALETTE.bold}${key}${PALETTE.reset}${PALETTE.dim}:${PALETTE.reset} ${PALETTE.dim}${label}${PALETTE.reset}`;
+        }
+        return `${PALETTE.dim}${h}${PALETTE.reset}`;
+      };
+
+      const formattedParts = hints.map(formatHint);
+      const stripAnsi = (s: string) => s.replace(/\x1b\[[0-9;]*m/g, '');
+
+      // fit as many full parts as possible into `cols`, left-to-right
+      const outParts: string[] = [];
+      let used = 0;
+      for (let i = 0; i < formattedParts.length; i++) {
+        const part = formattedParts[i];
+        const visibleLen = stripAnsi(part).length;
+        const sep = outParts.length > 0 ? 2 : 0; // '  '
+        if (used + sep + visibleLen <= cols) {
+          if (sep) used += 2;
+          outParts.push(part);
+          used += visibleLen;
+        } else {
+          // cannot fit this part fully; skip it
+          continue;
+        }
+      }
+
+      // If no parts fit, show truncated first hint (plain text, no ANSI)
+      let ln = '';
+      if (outParts.length === 0 && formattedParts.length > 0) {
+        const firstVisible = stripAnsi(formattedParts[0]);
+        ln = firstVisible.slice(0, Math.max(0, cols));
+      } else {
+        ln = outParts.join('  ');
+      }
+
+      normalized.push(''); // placeholder to make length rows again
+      const row = normalized.length - 1;
+      const visible = stripAnsi(ln);
+      normalized[row] = ln + ' '.repeat(Math.max(0, cols - visible.length));
+    } catch {}
 
     const buffer = '\x1b[H' + normalized.join('\n');
     process.stdout.write(buffer);
@@ -125,6 +218,53 @@ export class ViewManager {
     const onResize = () => this.redraw();
     process.stdout.on('resize', onResize as any);
 
+    // Robust signal and error handling: ensure terminal is restored on SIGINT / crashes
+    const onSigInt = async () => {
+      try {
+        await this.shutdown();
+      } catch (err) {
+        // best-effort
+      }
+      // ensure process exits after cleanup
+      try {
+        process.exit(0);
+      } catch {}
+    };
+
+    const onUncaught = async (err: unknown) => {
+      try {
+        // attempt graceful shutdown
+        await this.shutdown();
+      } catch (e) {
+        // ignore
+      }
+      // log and exit with error
+      // eslint-disable-next-line no-console
+      console.error('Uncaught exception:', err);
+      try {
+        process.exit(1);
+      } catch {}
+    };
+
+    const onUnhandledRejection = async (reason: unknown) => {
+      try {
+        await this.shutdown();
+      } catch {}
+      // eslint-disable-next-line no-console
+      console.error('Unhandled rejection:', reason);
+      try {
+        process.exit(1);
+      } catch {}
+    };
+
+    // register global handlers (store them so we can remove later)
+    (this as any)._sigint = onSigInt;
+    (this as any)._uncaught = onUncaught;
+    (this as any)._unhandled = onUnhandledRejection;
+    process.on('SIGINT', onSigInt);
+    process.on('uncaughtException', onUncaught as any);
+    process.on('unhandledRejection', onUnhandledRejection as any);
+
     // enter alternate screen and clear scrollback
     process.stdout.write('\x1b[?1049h');
     process.stdout.write('\x1b[3J');
@@ -148,6 +288,20 @@ export class ViewManager {
           process.stdout.write('\x1b[?25h'); // show cursor
           process.stdout.write('\x1b[2J\x1b[H');
           process.stdout.write('\x1b[?1049l'); // exit alt buffer
+        } catch {}
+
+        // remove global handlers if they were set
+        try {
+          const sig = (this as any)._sigint;
+          if (sig) process.off('SIGINT', sig);
+        } catch {}
+        try {
+          const uc = (this as any)._uncaught;
+          if (uc) process.off('uncaughtException', uc as any);
+        } catch {}
+        try {
+          const uh = (this as any)._unhandled;
+          if (uh) process.off('unhandledRejection', uh as any);
         } catch {}
         this.running = false;
         resolve();

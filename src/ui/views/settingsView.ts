@@ -9,8 +9,7 @@ export const SettingsView: View = {
     const lines: string[] = [];
     lines.push('Einstellungen');
     lines.push('');
-    lines.push('Hier könnten Einstellungen angezeigt werden.');
-    lines.push('Esc: Zurück');
+  lines.push('Hier könnten Einstellungen angezeigt werden.');
     while (lines.length < rows - 2) lines.push('');
     return header + '\n' + lines.join('\n') + '\n';
   },
@@ -19,6 +18,9 @@ export const SettingsView: View = {
     if (chunk === '\u001b') {
       vm.back();
     }
+  },
+  footerHints() {
+    return ['Esc: Zurück'];
   },
 };
 

@@ -35,7 +35,7 @@ function showCursor() {
  * - single: uses radio glyphs ○ / ●
  * - current line is prefixed with a colored arrow ›
  */
-export function renderSelect(options: string[], current: number, selected: Set<number>, multi: boolean, prompt?: string): string {
+export function renderSelect(options: string[], current: number, selected: Set<number>, multi: boolean, prompt?: string, showHelp = true): string {
   const lines: string[] = [];
     const reset = ANSI.reset;
   const cyan = ANSI.pastel;
@@ -60,8 +60,10 @@ export function renderSelect(options: string[], current: number, selected: Set<n
     lines.push(`${pointer} ${mark} ${label}`);
   }
 
-  lines.push('');
-  lines.push(`${ANSI.gray}Use ↑/↓ to move, <space> to toggle (multi), Enter to confirm, Esc/q to cancel${reset}`);
+  if (showHelp) {
+    lines.push('');
+    lines.push(`${ANSI.gray}Use ↑/↓ to move, <space> to toggle (multi), Enter to confirm, Esc/q to cancel${reset}`);
+  }
   return lines.join('\n');
 }
 

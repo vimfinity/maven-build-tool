@@ -2,14 +2,16 @@ import type { View } from '../view-manager';
 import { renderHeader } from '..';
 import { renderSelect } from '../widgets/select';
 
-const options = ['Projekt wählen', 'Einstellungen', 'Beenden'];
+const options = ['Projekt wählen', 'Statistiken', 'Einstellungen', 'Beenden'];
 
 export const MainMenuView: View = {
+  title: 'Hauptmenü',
   render() {
-    const header = renderHeader();
-    // use renderSelect for consistent styling (single select)
-    const body = renderSelect(options, 0, new Set<number>(), false, 'Hauptmenü:');
-    return header + '\n' + body;
+  const header = renderHeader();
+  // use renderSelect for consistent styling (single select). Footer will show help.
+  const current = (this as any).__current || 0;
+  const body = renderSelect(options, current, new Set<number>(), false, 'Hauptmenü:', false);
+  return header + '\n' + body;
   },
   onMount(vm) {
     // initialize state on mount
@@ -31,6 +33,9 @@ export const MainMenuView: View = {
       if (sel === 'Projekt wählen') {
         vm.show('projectPicker');
         return;
+      } else if (sel === 'Statistiken') {
+        vm.show('statistics');
+        return;
       } else if (sel === 'Einstellungen') {
         vm.show('settings');
         return;
@@ -43,10 +48,11 @@ export const MainMenuView: View = {
       return;
     }
     (this as any).__current = current;
-    // re-render with updated current
-    const selected = new Set<number>();
-    const rendered = renderHeader() + '\n' + renderSelect(options, current, selected, false, 'Hauptmenü:');
-    process.stdout.write('\x1b[H\x1b[2J' + rendered);
+    // ask ViewManager to redraw the current view (which overlays footer)
+    vm.redraw(this as any);
+  },
+  footerHints() {
+    return ['↑/↓: bewegen', 'Enter: auswählen'];
   },
 };
 
