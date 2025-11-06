@@ -55,8 +55,19 @@ async function main() {
 		}
 
 		try {
-			const mod = await tryImport<{ default: () => Promise<void> }>('./ui/startView');
-			await mod.default();
+			const vmMod = await tryImport<typeof import('./ui/view-manager')>('./ui/view-manager');
+			const ViewManager = vmMod.default || vmMod.ViewManager;
+			const vm = new ViewManager();
+
+			const startMod = await tryImport('./ui/views/startScreen');
+			const mainMenuMod = await tryImport('./ui/views/mainMenuView');
+			const settingsMod = await tryImport('./ui/views/settingsView');
+			vm.register('start', startMod.default || startMod.StartScreen || startMod);
+			vm.register('mainMenu', mainMenuMod.default || mainMenuMod.MainMenuView || mainMenuMod);
+			vm.register('settings', settingsMod.default || settingsMod.SettingsView || settingsMod);
+
+			await vm.show('start');
+			await vm.start();
 			process.exit(0);
 		} catch (err) {
 			console.error('Start view failed:', err);

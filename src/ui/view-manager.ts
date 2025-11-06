@@ -1,0 +1,128 @@
+import { joinLines } from '.';
+
+export type View = {
+  render: () => string;
+  onMount?: (vm: ViewManager) => void | Promise<void>;
+  onUnmount?: (vm: ViewManager) => void | Promise<void>;
+  onInput?: (chunk: string, vm: ViewManager) => void | Promise<void>;
+};
+
+export class ViewManager {
+  private views: Map<string, View> = new Map();
+  private current?: string;
+  private running = false;
+  private history: string[] = [];
+
+  constructor() {}
+
+  register(name: string, view: View) {
+    this.views.set(name, view);
+  }
+
+  has(name: string) {
+    return this.views.has(name);
+  }
+
+  async show(name: string, { replace = false }: { replace?: boolean } = {}) {
+    if (!this.views.has(name)) throw new Error(`Unknown view: ${name}`);
+    // unmount previous
+    if (this.current) {
+      const prev = this.views.get(this.current)!;
+      await prev.onUnmount?.(this);
+    }
+    if (!replace && this.current) {
+      this.history.push(this.current);
+    }
+    this.current = name;
+    const view = this.views.get(name)!;
+    this.redraw(view);
+    await view.onMount?.(this);
+  }
+
+  async back() {
+    const prev = this.history.pop();
+    if (!prev) return;
+    await this.show(prev, { replace: true });
+  }
+
+  redraw(view?: View) {
+    const v = view ?? (this.current ? this.views.get(this.current) : undefined);
+    if (!v) return;
+    // always clear whole screen and draw view.render()
+    process.stdout.write('\x1b[H');
+    process.stdout.write('\x1b[2J');
+    process.stdout.write(joinLines([v.render()]));
+  }
+
+  start(): Promise<void> {
+    if (this.running) return Promise.resolve();
+    this.running = true;
+    // set up raw mode and input routing
+    if (process.stdin.isTTY) process.stdin.setRawMode(true);
+    process.stdin.resume();
+    process.stdin.setEncoding('utf8');
+
+    const onData = async (chunk: string) => {
+      if (!chunk) return;
+      // global quit
+      if (chunk === '\u0003') {
+        await this.shutdown();
+        return;
+      }
+      const lower = chunk.toLowerCase();
+      if (lower === 'q' || lower === 'q\r' || lower === 'q\n') {
+        await this.shutdown();
+        return;
+      }
+      // forward to current view
+      if (this.current) {
+        const view = this.views.get(this.current)!;
+        await view.onInput?.(chunk, this);
+      }
+    };
+
+    process.stdin.on('data', onData as any);
+
+    const onResize = () => this.redraw();
+    process.stdout.on('resize', onResize as any);
+
+    // enter alternate screen and clear scrollback
+    process.stdout.write('\x1b[?1049h');
+    process.stdout.write('\x1b[3J');
+    process.stdout.write('\x1b[?25l'); // hide cursor
+
+    return new Promise<void>((resolve) => {
+      const finish = async () => {
+        try {
+          process.stdin.off('data', onData as any);
+        } catch {}
+        try {
+          process.stdout.off('resize', onResize as any);
+        } catch {}
+        try {
+          process.stdin.setRawMode && process.stdin.setRawMode(false);
+        } catch {}
+        try {
+          process.stdin.pause();
+        } catch {}
+        try {
+          process.stdout.write('\x1b[?25h'); // show cursor
+          process.stdout.write('\x1b[2J\x1b[H');
+          process.stdout.write('\x1b[?1049l'); // exit alt buffer
+        } catch {}
+        this.running = false;
+        resolve();
+      };
+
+      // expose shutdown so views can call it
+      (this as any)._finish = finish;
+    });
+  }
+
+  async shutdown() {
+    const fin = (this as any)._finish as (() => void) | undefined;
+    if (fin) fin();
+  }
+}
+
+export default ViewManager;
