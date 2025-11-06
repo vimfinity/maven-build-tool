@@ -1,16 +1,25 @@
 // Dynamically load demos so the compiled ESM output can resolve .js files
 async function tryImport<T = any>(basePath: string): Promise<T> {
-	// first try with explicit .js extension (what tsc emits into dist)
-	try {
-		// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-		// @ts-ignore dynamic import
-		return (await import(basePath + '.js')) as T;
-	} catch (err) {
-		// fallback to extensionless import (works when running via tsx in dev)
-		// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-		// @ts-ignore dynamic import
-		return (await import(basePath)) as T;
+	// Try resolving imports relative to this module (import.meta.url). This
+	// works when running compiled files from `dist/` and also inside a
+	// single-executable blob where CWD-based resolution may fail.
+	const attempts = [basePath + '.js', basePath];
+	for (const p of attempts) {
+		try {
+			// resolve relative to current module
+			const url = new URL(p, import.meta.url).href;
+			// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+			// @ts-ignore dynamic import
+			return (await import(url)) as T;
+		} catch (err) {
+			// try next
+		}
 	}
+
+	// final fallback: try bare import (allow resolution via tsx / node resolution)
+	// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+	// @ts-ignore dynamic import
+	return (await import(basePath)) as T;
 }
 
 async function main() {
