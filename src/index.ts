@@ -48,6 +48,22 @@ async function main() {
 		}
 	}
 
+	if (args.includes('--ui')) {
+		if (!process.stdin.isTTY) {
+			console.log('UI requires a TTY.');
+			process.exit(1);
+		}
+
+		try {
+			const mod = await tryImport<{ default: () => Promise<void> }>('./ui/startView');
+			await mod.default();
+			process.exit(0);
+		} catch (err) {
+			console.error('Start view failed:', err);
+			process.exit(1);
+		}
+	}
+
 	console.log('Maven CLI bootstrap ready');
 }
 
