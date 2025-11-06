@@ -10,6 +10,12 @@ mkdir -p build
 echo "Building TypeScript..."
 pnpm build
 
+# Ensure ESM entry for SEA: copy dist/index.js to dist/index.mjs so embedded Node runs ESM
+if [ -f dist/index.js ]; then
+  echo "Creating ESM entry dist/index.mjs"
+  cp dist/index.js dist/index.mjs
+fi
+
 echo "Running Node experimental SEA config to create blob..."
 node --experimental-sea-config sea-config.json
 
