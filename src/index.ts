@@ -66,7 +66,8 @@ async function main() {
 			vm.register('mainMenu', mainMenuMod.default || mainMenuMod.MainMenuView || mainMenuMod);
 			vm.register('settings', settingsMod.default || settingsMod.SettingsView || settingsMod);
 
-			await vm.show('start');
+			// show main menu immediately after boot
+			await vm.show('mainMenu');
 			await vm.start();
 			process.exit(0);
 		} catch (err) {
