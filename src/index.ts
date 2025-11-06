@@ -67,8 +67,13 @@ async function main() {
 			vm.register('settings', settingsMod.default || settingsMod.SettingsView || settingsMod);
 
 			// show main menu immediately after boot
+			// start the ViewManager (enter alternate buffer) before drawing the first view
+			const runner = vm.start();
+			// tiny delay to let the alternate buffer be activated on some terminals
+			await new Promise((r) => setTimeout(r, 20));
 			await vm.show('mainMenu');
-			await vm.start();
+			// wait for the ViewManager to finish (shutdown)
+			await runner;
 			process.exit(0);
 		} catch (err) {
 			console.error('Start view failed:', err);
