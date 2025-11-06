@@ -29,3 +29,7 @@ pnpm run dev -- --ui-multiselect-demo
 
 Notes
 - Interactive widgets require a TTY (stdin.isTTY). In CI or when piped, they will not function.
+
+Cleanup
+- Removed unused/placeholder files: `RootApp.ts`, `app.ts`, `root.ts`, `service.ts`, `view-manager.ts`, `viewManager.ts`, `views/mainMenuView.ts`, `views/settingsView.ts`.
+	These were empty placeholders and not referenced anywhere in the repository. If you need them again, they can be restored from git history.

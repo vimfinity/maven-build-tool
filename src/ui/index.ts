@@ -12,9 +12,6 @@ export { renderMainMenu } from './views/mainMenu';
 export { renderStatus } from './views/status';
 export { renderSelect, interactiveSelect } from './widgets/select';
 export type { SelectOptions } from './widgets/select';
-export { App } from './app';
-export { createMainMenuView } from './views/mainMenuView';
-export { createSettingsView } from './views/settingsView';
 
 // Small helpers
 export function joinLines(parts: Array<string | undefined | null>): string {
