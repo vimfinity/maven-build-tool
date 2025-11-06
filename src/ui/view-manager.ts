@@ -20,6 +20,10 @@ export class ViewManager {
     this.views.set(name, view);
   }
 
+  registerAll(map: Record<string, View>) {
+    for (const k of Object.keys(map)) this.register(k, map[k]);
+  }
+
   has(name: string) {
     return this.views.has(name);
   }

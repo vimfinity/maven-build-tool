@@ -33,3 +33,52 @@ Notes
 Cleanup
 - Removed unused/placeholder files: `RootApp.ts`, `app.ts`, `root.ts`, `service.ts`, `view-manager.ts`, `viewManager.ts`, `views/mainMenuView.ts`, `views/settingsView.ts`.
 	These were empty placeholders and not referenced anywhere in the repository. If you need them again, they can be restored from git history.
+
+Extending the UI — adding new Views
+----------------------------------
+
+Views are plain objects implementing a small interface. Example template:
+
+```ts
+// src/ui/views/myView.ts
+import type { View } from '../view-manager';
+import { renderHeader } from './header';
+
+export const MyView: View = {
+	render() {
+		return renderHeader() + '\n' + 'My View content here\n';
+	},
+	onMount(vm) {
+		// optional: initialize state
+	},
+	onInput(chunk, vm) {
+		// optional: handle keys (Enter, Esc, arrows)
+		if (chunk === '\u001b') vm.back(); // Esc to go back
+	}
+}
+
+export default MyView;
+```
+
+Registering multiple views
+--------------------------
+
+The `ViewManager` exposes `register(name, view)` and `registerAll(map)` so you can bulk-register views from a single file:
+
+```ts
+import vm from './ui/view-manager';
+vm.registerAll({ myView: MyView, other: OtherView });
+```
+
+Dynamic child views
+-------------------
+
+Use `vm.open(view)` to open anonymous child views (the manager will assign a name and manage cleanup). Use `vm.back()` or Esc to return.
+
+Example: `vm.open({ render() { return '...'; }, onInput(c, vm) { if (c === '\u001b') vm.back(); } })`
+
+Best practices
+--------------
+- Keep `render()` pure and side-effect free — return a string only.
+- Handle input in `onInput` or `onMount`/`onUnmount` for lifecycle needs.
+- Avoid global state — store view-local state on the view object itself (e.g. `this.__current`).
