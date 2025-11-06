@@ -61,9 +61,11 @@ async function main() {
 
 			const startMod = await tryImport('./ui/views/startScreen');
 			const mainMenuMod = await tryImport('./ui/views/mainMenuView');
+			const projectPickerMod = await tryImport('./ui/views/projectPicker');
 			const settingsMod = await tryImport('./ui/views/settingsView');
 			vm.register('start', startMod.default || startMod.StartScreen || startMod);
 			vm.register('mainMenu', mainMenuMod.default || mainMenuMod.MainMenuView || mainMenuMod);
+			vm.register('projectPicker', projectPickerMod.default || projectPickerMod.ProjectPicker || projectPickerMod);
 			vm.register('settings', settingsMod.default || settingsMod.SettingsView || settingsMod);
 
 			// show main menu immediately after boot

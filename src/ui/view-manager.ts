@@ -12,6 +12,7 @@ export class ViewManager {
   private current?: string;
   private running = false;
   private history: string[] = [];
+  private anonCounter = 0;
 
   constructor() {}
 
@@ -40,9 +41,26 @@ export class ViewManager {
   }
 
   async back() {
+    const current = this.current;
     const prev = this.history.pop();
     if (!prev) return;
     await this.show(prev, { replace: true });
+    // if the view we just left was an anonymous view, deregister it
+    if (current && current.startsWith('__anon_')) {
+      try {
+        this.views.delete(current);
+      } catch {}
+    }
+  }
+
+  /**
+   * Open a dynamic/anonymous child view. Returns the generated view name.
+   */
+  async open(view: View): Promise<string> {
+    const name = `__anon_${++this.anonCounter}`;
+    this.register(name, view);
+    await this.show(name);
+    return name;
   }
 
   redraw(view?: View) {

@@ -2,7 +2,7 @@ import type { View } from '../view-manager';
 import { renderHeader } from '..';
 import { renderSelect } from '../widgets/select';
 
-const options = ['Einstellungen', 'Beenden'];
+const options = ['Projekt wählen', 'Einstellungen', 'Beenden'];
 
 export const MainMenuView: View = {
   render() {
@@ -28,7 +28,10 @@ export const MainMenuView: View = {
       current = Math.min(options.length - 1, current + 1);
     } else if (key === '\r' || key === '\n') { // enter
       const sel = options[current];
-      if (sel === 'Einstellungen') {
+      if (sel === 'Projekt wählen') {
+        vm.show('projectPicker');
+        return;
+      } else if (sel === 'Einstellungen') {
         vm.show('settings');
         return;
       } else if (sel === 'Beenden') {
