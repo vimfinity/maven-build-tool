@@ -10,6 +10,9 @@ mkdir -p build
 echo "Building TypeScript..."
 pnpm build
 
+# Write minimal package.json for ESM detection in dist
+echo '{ "type": "module" }' > dist/package.json
+
 # Ensure ESM entry for SEA: copy dist/index.js to dist/index.mjs so embedded Node runs ESM
 if [ -f dist/index.js ]; then
   echo "Creating ESM entry dist/index.mjs"

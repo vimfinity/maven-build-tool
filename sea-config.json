@@ -2,6 +2,6 @@
   "main": "./dist/index.mjs",
   "output": "./build/sea-prep.blob",
   "resources": [
-    "./package.json"
+  "./package.json"
   ]
 }
