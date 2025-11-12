@@ -1,4 +1,7 @@
 {
   "main": "./dist/index.mjs",
-  "output": "./build/sea-prep.blob"
+  "output": "./build/sea-prep.blob",
+  "resources": [
+    "./package.json"
+  ]
 }
