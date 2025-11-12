@@ -12,6 +12,8 @@ pnpm build
 
 # Write minimal package.json for ESM detection in dist
 echo '{ "type": "module" }' > dist/package.json
+# Write CJS bridge for SEA entry
+echo "require('./index.mjs');" > dist/index.cjs
 
 # Ensure ESM entry for SEA: copy dist/index.js to dist/index.mjs so embedded Node runs ESM
 if [ -f dist/index.js ]; then

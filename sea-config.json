@@ -1,5 +1,5 @@
 {
-  "main": "./dist/index.mjs",
+  "main": "./dist/index.cjs",
   "output": "./build/sea-prep.blob",
   "resources": [
   "./package.json"
